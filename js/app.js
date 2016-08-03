@@ -1,10 +1,10 @@
 // this function takes the question object returned by the StackOverflow request
 // and returns new result to be appended to DOM
 var showQuestion = function(question) {
-	
+
 	// clone our result template code
 	var result = $('.templates .question').clone();
-	
+
 	// Set the question properties in result
 	var questionElem = result.find('.question-text a');
 	questionElem.attr('href', question.link);
@@ -49,15 +49,15 @@ var showError = function(error){
 // takes a string of semi-colon separated tags to be searched
 // for on StackOverflow
 var getUnanswered = function(tags) {
-	
+
 	// the parameters we need to pass in our request to StackOverflow's API
-	var request = { 
+	var request = {
 		tagged: tags,
 		site: 'stackoverflow',
 		order: 'desc',
 		sort: 'creation'
 	};
-	
+
 	$.ajax({
 		url: "http://api.stackexchange.com/2.2/questions/unanswered",
 		data: request,
@@ -82,6 +82,49 @@ var getUnanswered = function(tags) {
 };
 
 
+
+var getInspiration = function (tags) {
+
+	$.ajax({
+		url: "http://api.stackexchange.com/2.2/tags/" + tags + "/top-answerers/all_time?site=stackoverflow",
+		dataType: "jsonp",//use jsonp to avoid cross origin issues
+		type: "GET",
+	})
+
+	.done(function(result){ //this waits for the ajax to return with a succesful promise object
+		console.log(result);
+
+	var searchResults = showSearchResults(tags, result.items.length);
+
+		$('.search-results').html(searchResults);
+
+		$.each(result.items, function(i, item) {
+			var user = showUser(item);
+			$('.results').append(user);
+		});
+	})
+	.fail(function(jqXHR, error){ //this waits for the ajax to return with an error promise object
+		var errorElem = showError(error);
+		$('.search-results').append(errorElem);
+	});
+};
+
+var showUser = function (item) {
+
+	var result = $('.templates .answerers').clone();
+	// Set the user name properties in result
+	var userElem = result.find('.answerer-text a');
+	userElem.attr('href', item.user.link);
+	userElem.text(item.user.display_name);
+
+	var userPhoto = result.find('.photopic img');
+	userPhoto.attr('src', item.user.profile_image);
+
+
+	console.log(item.user.display_name);
+	return result;
+};
+
 $(document).ready( function() {
 	$('.unanswered-getter').submit( function(e){
 		e.preventDefault();
@@ -91,4 +134,13 @@ $(document).ready( function() {
 		var tags = $(this).find("input[name='tags']").val();
 		getUnanswered(tags);
 	});
+
+	$('.inspiration-getter').submit ( function(e) {
+		e.preventDefault();
+		$('.results').html('');
+
+		var tags = $(this).find("input[name='tags']").val();
+		getInspiration(tags);
+	});
+
 });
